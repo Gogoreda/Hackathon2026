@@ -1,8 +1,7 @@
 from reportlab.platypus import (
     SimpleDocTemplate,
     Paragraph,
-    Spacer,
-    PageBreak
+    Spacer
 )
 
 from reportlab.lib.styles import getSampleStyleSheet
@@ -10,16 +9,16 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus.tables import Table, TableStyle
 from reportlab.lib import colors
 
-import pandas as pd
-
 
 def generate_pdf_report(
     filename,
     df,
     financial_summary,
     sentiment_summary,
-    risk_summary,
-    final_report
+    prediction_summary,
+    final_report,
+    news_df=None,
+    quarterly_df=None
 ):
 
     doc = SimpleDocTemplate(
@@ -31,7 +30,7 @@ def generate_pdf_report(
     elements = []
 
     title = Paragraph(
-        "AlphaLens Investment Research Brief",
+        "AlphaLens Predictive Investment Research Brief",
         styles["Title"]
     )
 
@@ -46,10 +45,16 @@ def generate_pdf_report(
     table_df = df[
         [
             "ticker",
-            "risk_score",
-            "risk_level",
+            "model",
+            "ml_model",
             "current_price",
-            "pe_ratio"
+            "expected_price",
+            "expected_return",
+            "probability_positive",
+            "ml_validation_mae",
+            "ml_directional_accuracy",
+            "annualized_volatility",
+            "outlook"
         ]
     ].copy()
 
@@ -73,12 +78,80 @@ def generate_pdf_report(
     elements.append(table)
     elements.append(Spacer(1, 20))
 
+    if news_df is not None and not news_df.empty:
+        elements.append(
+            Paragraph("Latest Yahoo Finance News", styles["Heading2"])
+        )
+
+        news_table_df = news_df[
+            [
+                "ticker",
+                "published_date",
+                "publisher",
+                "title",
+            ]
+        ].head(15).copy()
+
+        news_table_data = [news_table_df.columns.tolist()]
+
+        for _, row in news_table_df.iterrows():
+            news_table_data.append(row.tolist())
+
+        news_table = Table(news_table_data)
+        news_table.setStyle(
+            TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+            ])
+        )
+
+        elements.append(news_table)
+        elements.append(Spacer(1, 20))
+
+    if quarterly_df is not None and not quarterly_df.empty:
+        elements.append(
+            Paragraph("Latest Quarterly Results", styles["Heading2"])
+        )
+
+        quarterly_table_df = quarterly_df[
+            [
+                "ticker",
+                "quarter",
+                "revenue",
+                "gross_profit",
+                "operating_income",
+                "net_income",
+            ]
+        ].copy()
+
+        quarterly_table_data = [quarterly_table_df.columns.tolist()]
+
+        for _, row in quarterly_table_df.iterrows():
+            quarterly_table_data.append(row.tolist())
+
+        quarterly_table = Table(quarterly_table_data)
+        quarterly_table.setStyle(
+            TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+            ])
+        )
+
+        elements.append(quarterly_table)
+        elements.append(Spacer(1, 20))
+
     # Sections
     sections = [
         ("Financial Agent Summary", financial_summary),
         ("News & Sentiment Agent Summary", sentiment_summary),
-        ("Risk Agent Summary", risk_summary),
-        ("Final Investment Brief", final_report),
+        ("Predictive Analysis Agent Summary", prediction_summary),
+        ("Final Predictive Brief", final_report),
     ]
 
     for title_text, content in sections:
@@ -96,7 +169,7 @@ def generate_pdf_report(
         elements.append(Spacer(1, 20))
 
     disclaimer = Paragraph(
-        "Disclaimer: Educational prototype only. Not financial advice.",
+        "Disclaimer: Educational predictive scenarios only. Not financial advice.",
         styles["Italic"]
     )
 
