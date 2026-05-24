@@ -16,8 +16,11 @@ if not api_key:
 
 client = Groq(api_key=api_key) if api_key else None
 
+DEFAULT_AGENT_MODEL = os.getenv("GROQ_AGENT_MODEL", "llama-3.1-8b-instant")
+DEFAULT_REPORT_MODEL = os.getenv("GROQ_REPORT_MODEL", "llama-3.3-70b-versatile")
 
-def call_llm(prompt):
+
+def call_llm(prompt, model=None):
     if client is None:
         return """
 LLM not configured.
@@ -27,7 +30,7 @@ GROQ_API_KEY=your_api_key_here
 """
 
     response = client.chat.completions.create(
-        model="llama-3.1-8b-instant",
+        model=model or DEFAULT_AGENT_MODEL,
         messages=[
             {
                 "role": "system",
@@ -76,7 +79,7 @@ Return:
 
 Do not provide investment advice.
 """
-    return call_llm(prompt)
+    return call_llm(prompt, model=DEFAULT_AGENT_MODEL)
 
 
 def sentiment_agent(tickers, news_df=None):
@@ -105,7 +108,7 @@ Return:
 
 Do not provide buy/sell recommendations.
 """
-    return call_llm(prompt)
+    return call_llm(prompt, model=DEFAULT_AGENT_MODEL)
 
 
 def prediction_agent(df):
@@ -148,7 +151,7 @@ Return:
 
 Do not provide investment advice.
 """
-    return call_llm(prompt)
+    return call_llm(prompt, model=DEFAULT_AGENT_MODEL)
 
 
 def report_agent(
@@ -213,4 +216,4 @@ Important:
 - Distinguish historical price signals, news context, and quarterly fundamentals
 - Be clear and structured
 """
-    return call_llm(prompt)
+    return call_llm(prompt, model=DEFAULT_REPORT_MODEL)

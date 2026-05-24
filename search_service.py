@@ -1,6 +1,35 @@
 import yfinance as yf
 
 
+VALID_QUOTE_TYPES = {
+    "EQUITY",
+    "ETF",
+    "MUTUALFUND",
+    "INDEX",
+}
+
+
+def resolve_direct_ticker(query):
+    symbol = query.strip().upper()
+
+    if not symbol or " " in symbol:
+        return None
+
+    try:
+        stock = yf.Ticker(symbol)
+        info = stock.info or {}
+        quote_type = info.get("quoteType")
+        hist = stock.history(period="5d")
+
+        if quote_type in VALID_QUOTE_TYPES and not hist.empty:
+            return symbol
+
+    except Exception:
+        return None
+
+    return None
+
+
 def search_companies(query, max_results=5):
     try:
         search = yf.Search(query, max_results=max_results)
@@ -14,7 +43,7 @@ def search_companies(query, max_results=5):
             exchange = item.get("exchange")
             quote_type = item.get("quoteType")
 
-            if symbol and quote_type in ["EQUITY", "ETF"]:
+            if symbol and quote_type in VALID_QUOTE_TYPES:
                 results.append({
                     "symbol": symbol,
                     "name": name,
@@ -34,6 +63,11 @@ def search_companies(query, max_results=5):
 
 
 def resolve_company_to_ticker(company_name):
+    direct_ticker = resolve_direct_ticker(company_name)
+
+    if direct_ticker:
+        return direct_ticker
+
     results = search_companies(company_name, max_results=5)
 
     valid_results = [

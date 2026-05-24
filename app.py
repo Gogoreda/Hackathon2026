@@ -49,9 +49,9 @@ with st.sidebar:
 
     user_session_id = get_or_create_session_id(st.session_state)
 
-    companies_input = st.text_input(
-        "Companies or stock tickers",
-        value="Nvidia, AMD, Palantir, Amazon"
+    company_input = st.text_input(
+        "Company or stock ticker",
+        value="Nvidia"
     )
 
     horizon = st.selectbox(
@@ -87,18 +87,14 @@ with st.sidebar:
         st.caption("MySQL logging disabled. Add MYSQL_* values to .env to enable it.")
 
 if run_button:
-    companies = [
-        company.strip()
-        for company in companies_input.split(",")
-        if company.strip()
-    ]
+    company = company_input.strip()
 
-    if not companies:
-        st.error("Please enter at least one company or ticker.")
+    if not company:
+        st.error("Please enter a company or ticker.")
         st.stop()
 
     with st.spinner("Search Agent is resolving company names into stock tickers..."):
-        resolved_companies = resolve_companies_to_tickers(companies)
+        resolved_companies = resolve_companies_to_tickers([company])
 
     st.header("0. Search Agent - Resolved Companies")
 
@@ -155,7 +151,7 @@ if run_button:
     if prediction_log_ids:
         st.caption(f"Saved {len(prediction_log_ids)} prediction request(s) to MySQL.")
 
-    st.header("1. Company Comparison")
+    st.header("1. Company Snapshot")
 
     metric_cols = st.columns(len(df))
 
@@ -197,28 +193,6 @@ if run_button:
             st.caption(f"Sector: {row.get('sector', 'N/A')}")
             st.caption(f"P/E: {row.get('pe_ratio', 'N/A')}")
             st.caption(f"Outlook: {row.get('outlook', 'N/A')}")
-
-    st.subheader("Market Cap Comparison")
-
-    fig_market_cap = px.bar(
-        df,
-        x="ticker",
-        y="market_cap",
-        text="market_cap",
-        title="Market Cap by Company"
-    )
-
-    fig_market_cap.update_traces(
-        texttemplate="%{y:.2s}",
-        textposition="outside"
-    )
-
-    fig_market_cap.update_layout(
-        yaxis_title="Market Cap",
-        xaxis_title="Company"
-    )
-
-    st.plotly_chart(fig_market_cap, use_container_width=True)
 
     st.subheader("Key Financial Metrics")
 
@@ -296,6 +270,7 @@ if run_button:
         display_columns = [
             "ticker",
             "company_name",
+            "asset_type",
             "sector",
             "current_price",
             "market_cap",
@@ -451,29 +426,6 @@ if run_button:
             )
             st.caption(row.get("prediction_explanation", ""))
 
-    st.subheader("Expected Return")
-
-    fig_expected_return = px.bar(
-        df.sort_values("expected_return", ascending=False),
-        x="ticker",
-        y="expected_return",
-        color="outlook",
-        title=f"Expected Return by Company - {horizon}",
-        text="expected_return"
-    )
-
-    fig_expected_return.update_traces(
-        texttemplate="%{y:.1%}",
-        textposition="outside"
-    )
-
-    fig_expected_return.update_layout(
-        yaxis_title="Expected Return",
-        xaxis_title="Company"
-    )
-
-    st.plotly_chart(fig_expected_return, use_container_width=True)
-
     st.subheader("Scenario Range")
 
     scenario_columns = [
@@ -530,28 +482,6 @@ if run_button:
     )
 
     st.plotly_chart(fig_scenarios, use_container_width=True)
-
-    fig_probability = px.bar(
-        df,
-        x="ticker",
-        y="probability_positive",
-        color="outlook",
-        title="Estimated Probability of Positive Return",
-        text="probability_positive",
-        range_y=[0, 1]
-    )
-
-    fig_probability.update_traces(
-        texttemplate="%{y:.1%}",
-        textposition="outside"
-    )
-
-    fig_probability.update_layout(
-        yaxis_title="Probability",
-        xaxis_title="Company"
-    )
-
-    st.plotly_chart(fig_probability, use_container_width=True)
 
     st.header("4. Final Predictive Brief")
 
